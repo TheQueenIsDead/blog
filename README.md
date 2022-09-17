@@ -24,7 +24,20 @@ LZ is a `landing zone` for displaying social links, it uses a neat theme called 
 
 ## Developing 
 
-[//]: # (TODO)
+Install the [Hugo Integration](https://plugins.jetbrains.com/plugin/13215-hugo-integration) for Jetbrains IDE's will
+allow you to leverage run configurations stored in the project, as well as hot reloading. This is optimal for Windows
+as WSL does not yet support filewatching nicely yet.
+
+Otherwise, you can bring up the sites with the provided Docker Compose configuration.
+
+```shell
+docker-compose up -d
+
+# LZ
+# http://localhost:1313 
+# Paper
+# http://localhost:1414
+```
 
 ## Deployment
 

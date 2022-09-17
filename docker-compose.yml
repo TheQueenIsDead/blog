@@ -1,9 +1,18 @@
 version: '3'
 services:
-  hugo:
-    image: klakegg/hugo:latest
+
+  lz:
+    image: klakegg/hugo:ext-alpine
     command: server
     volumes:
-      - "./src:/src"
+      - "./lz:/src"
     ports:
       - "1313:1313"
+
+  paper:
+    image: klakegg/hugo:ext-alpine
+    command: server
+    volumes:
+      - "./paper:/src"
+    ports:
+      - "1414:1313"
