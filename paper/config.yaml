@@ -1,4 +1,4 @@
-baseURL: "https://blog.tqid.dev"
+baseURL: "tqid.dev"
 title: tqid.dev
 paginate: 5
 theme: PaperMod
