@@ -18,6 +18,17 @@ hugo new posts/<name>.md
 
 A full range of configuration options for the theme can be found [here](https://github.com/adityatelange/hugo-PaperMod/wiki/Installation#sample-pagemd)
 
+#### Themes
+
+Themes need to be initialized by generating a css file via the Hugo CLI:
+
+```shell
+# For example, generate a theme 
+hugo gen chromastyles --style monokai --highlightStyle 'bg:#474733' > assets/css/extended/monokai.css
+```
+
+A full list of themes can be viewed [here](https://xyproto.github.io/splash/docs/all.html)
+
 ### LZ
 
 LZ is a `landing zone` for displaying social links, it uses a neat theme called [Lynx](https://themes.gohugo.io/themes/lynx/).
