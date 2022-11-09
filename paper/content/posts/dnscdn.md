@@ -26,55 +26,58 @@ Here's my findings!
 
 ## 📈 Limits 
 
-### ⛅ Cloud Providers
+### ⛅ DNS Providers
 
 There's a few [DNS record types](https://en.wikipedia.org/wiki/List_of_DNS_record_types#Resource_records) out there, 
-but TXT are expected to be the largest of them. This is important as various provider SDK's are prone to limiting how
-much data you can store, per the below chart:
+but TXT are expected to be the largest of them. The maximum size of attached data differs greatly between providers,
+and isusually enforced via the provider API (SDK and UI).
+
+A non-comprehensive overview of a few providers below demonstraces the variablity in content length. It is also important to
+consider the significant difference in records that one can provision:
 
 | Provider   | Max Length                                                                                                          | Max Records per Domain                                                          | Total Characters |
 |------------|---------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------|------------------|
 | AWS        | [4,000 characters](https://aws.amazon.com/premiumsupport/knowledge-center/route-53-configure-long-spf-txt-records/) | [10,000](https://aws.amazon.com/route53/faqs/)                                  | 40,000,000       |
 | Azure      | [1024 characters](https://learn.microsoft.com/en-us/azure/dns/dns-zones-records#txt-records)                        | [10,000](https://learn.microsoft.com/en-us/azure/dns/dns-zones-records#limits)  | 10,240,000       |
-| GCP        | ?                                                                                                                   |                                                                                 |                  |
 | Cloudflare | [2048 characters](https://developers.cloudflare.com/dns/manage-dns-records/reference/dns-record-types/#txt)         | 1,000 (Free)                                                                    | 2,048,000        |
+| Namecheap | [2,500 characters](https://www.namecheap.com/support/knowledgebase/article.aspx/10058/10/namecheap-dns-limits/) | 150 | 375,000 |
+The above values are based off the the respective "basic tier" for each provider. It also assumes that no smarts are performed with various 'record set' abstractions offered by some providers (groups of records with the same name).
 
-The above assumes the most basic public tier, and that no smarts are performed with various 'record set' abstractions utilised by cloud providers.
-Google notes that record strings have maximum values but does not seem to indicate the maximum record size they would be willing to create.
-
-It does also not take into account monthly charges or billing per DNS query. While Cloudflare does not offer the 
-largest amount of records, it doesn't tack-on extra charges at every chance it gets, and it's registrar provides domains
-at cost.
+Cost is a factor to consider that I have left out, and for many providers there may be monthly charges, or even billing per DNS query. 
+While Cloudflare does not offer the largest amount of records, it doesn't tack-on extra charges at every chance it gets, 
+and it's registrar provides domains at cost.
 
 ### 🌐 Internet
 
-[RFC4408](https://www.rfc-editor.org/rfc/rfc4408#section-3.1.3) as specified by [IETF](https://www.ietf.org/rfc/rfc4408.txt)
-states that records can contain multiple strings, which helps us exceed the 255-byte maximum string length of a DNS response.
+As well as provider specific limits, there is the general internet to think about as well.
 
-However, item `3.1.4` states that record sizes should remain under 450 characters to allow the entire response to fit the 
+[RFC4408](https://www.rfc-editor.org/rfc/rfc4408#section-3.1.3) as specified by [IETF](https://www.ietf.org/rfc/rfc4408.txt)
+states that records can contain multiple strings. These are split into blocks of 255-bytes, which helps us exceed the maximum length of a single string within a DNS response.
+
+However, item `3.1.4` states that record sizes in total should remain under 450 characters to allow the entire response to fit the 
 size of a single [UDP packet](https://erg.abdn.ac.uk/users/gorry/course/inet-pages/udp.html), and results should remain 
 within 512 octets in order to preserve compatibility with older infrastructure.
 
-With that duly noted and ignored, let's deploy melvin.
+The wording "older infrastructure" implies that modern infrastrustre is happy to handle large records. 
+So with that duly noted and ignored, let's deploy melvin.
 
 
 ## ⚒ Development 
 
-As I worked through I realised that I had resorted to hard coding the amount of records to enumerate for `melvin.png`.
-This could have been solved by reserving data from the end of the DNS record content, pointing to the next record to visit, 
-or we could turn to our lord and saviour...DNS.
+I decided that it would be necessary to store some information about the media before retrieving it, an 'index' TXT record or sorts, that provides the count of subdomains to visit. accepting thata naming convention could be used to link them.
 
-I decided to implement an 'index' TXT record that provides the count of subdomains to visit, accepting that
-a naming convention could be used to link them.
+Thus the process for upload and download looks like so:
 
-This changed the process to:
+1. Upload `file.extension` @ `domain`
+2. The CLI base64 encodes the data and splits it into blocks based on the max record size.
+3. An index record is created at `<file.extension>.media.<domain>` with an integer representation of the amount of block domains.
+4. Then for every block a data domain is created at `<file.extension>.<i>.media.<domain>`.
 
-1. Upload `file.extension`
-2. An index record is stored at `<file.extension>.media.<domain>` with an integer representation of the amount of data domains.
-3. The CLI then knows to iterate `<file.extension>.<i>.media.<domain>`, and when to stop.
-4. The CLI pieces together the responses, deserializes it and write it to disk.
+1. Download `file.extension` @ `domain`
+2. The CLI retrieves the index record, then rtetrieves the TXT response of all data records.
+3. The CLI pieces together the responses, base64 decodes it, and writes to disk.
 
-This results in a list that looks roughly like this:
+This results in a list of domains that looks roughly like this:
 
 ```console
 melvin.png.media.tqid.dev       =>  7
@@ -92,14 +95,15 @@ It's a palatable solution to provide a working CLI until limits are encountered 
 ## ⏳📃 TODO
 
 With an MVP in place, the next steps from here would likely be spit and polish bits like:
- - tests
- - ci: lint, test, release
- - reduce code-duplication
- - standardise logging a bit more
+ - Tests
+ - CI (Lint, Test, Release)
+ - Reduce code-duplication
+ - Standardise logging
 
 And in terms of functionality, depending on how much my wallet can bear:
- - Add an AWS and Azure provider
- - Add a means to detect the provider automatically
+ - Enumerate and list files on a domain
+ - Support other DNS providers
+   - Detect the provider automatically
  - Test with bigger datasets
    - Attempt to convert to async go routines for data fetching
 
